@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user physical data, goals, and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "age": { "type": "integer" },
+        "weight": { "type": "number" },
+        "height": { "type": "number" },
+        "goal": { "type": "string" },
+        "activityLevel": { "type": "string" },
+        "preferences": { "type": "string" },
+        "targetCalories": { "type": "number" },
+        "targetProtein": { "type": "number" },
+        "targetCarbs": { "type": "number" },
+        "targetFat": { "type": "number" },
+        "notificationSettings": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "waterReminders": { "type": "boolean" },
+            "goalReminders": { "type": "boolean" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "isPremium": { "type": "boolean" },
+        "onboardingComplete": { "type": "boolean" },
+        "trialUntil": { "type": "string", "format": "date-time" },
+        "premiumUntil": { "type": "string", "format": "date-time" },
+        "photoURL": { "type": "string" },
+        "iconMappings": { "type": "object" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "MealLog": {
+      "title": "Meal Log",
+      "description": "Stores meal entries with AI analysis.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "analysis": { "type": "string" },
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "fat": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "timestamp"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Stores conversation history with the AI Coach.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "content", "timestamp"]
+    },
+    "WeightProgress": {
+      "title": "Weight Progress",
+      "description": "Stores weight measurements over time.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "weight": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "weight", "timestamp"]
+    },
+    "WorkoutLog": {
+      "title": "Workout Log",
+      "description": "Stores user workout sessions.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "exerciseType": { "type": "string" },
+        "duration": { "type": "integer" },
+        "intensity": { "type": "string", "enum": ["baixa", "moderada", "alta"] },
+        "caloriesBurned": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "exerciseType", "duration", "intensity", "timestamp"]
+    },
+    "MealTemplate": {
+      "title": "Meal Template",
+      "description": "Stores frequently logged meals for quick reuse.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "fat": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "calories", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile data"
+    },
+    "/users/{uid}/meals/{mealId}": {
+      "schema": "MealLog",
+      "description": "User meal logs"
+    },
+    "/users/{uid}/chat/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "User chat history"
+    },
+    "/users/{uid}/progress/{progressId}": {
+      "schema": "WeightProgress",
+      "description": "User weight progress"
+    },
+    "/users/{uid}/workouts/{workoutId}": {
+      "schema": "WorkoutLog",
+      "description": "User workout logs"
+    },
+    "/users/{uid}/templates/{templateId}": {
+      "schema": "MealTemplate",
+      "description": "User meal templates"
+    }
+  }
+}

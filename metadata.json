@@ -1,0 +1,5 @@
+{
+  "name": "EmagreçaAi.ao",
+  "description": "SaaS de saúde e bem-estar focado em emagrecimento sustentável com Agente de IA integrado (Coach 24/7).",
+  "requestFramePermissions": ["camera"]
+}

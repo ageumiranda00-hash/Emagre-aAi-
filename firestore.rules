@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin') ||
+          (request.auth.token.email == "ageumiranda00@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    function isValidUser(data) {
+      let allowedFields = ['uid', 'name', 'email', 'age', 'weight', 'height', 'goal', 'activityLevel', 'preferences', 'targetCalories', 'targetProtein', 'targetCarbs', 'targetFat', 'notificationSettings', 'createdAt', 'role', 'isPremium', 'iconMappings', 'photoURL', 'onboardingComplete', 'trialUntil', 'premiumUntil'];
+      return data.keys().hasAll(['uid', 'name', 'email']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             (!('age' in data) || (data.age is int && data.age > 0 && data.age < 120)) &&
+             (!('weight' in data) || (data.weight is number && data.weight > 0 && data.weight < 500)) &&
+             (!('height' in data) || (data.height is number && data.height > 0 && data.height < 300)) &&
+             (!('targetCalories' in data) || (data.targetCalories is number && data.targetCalories >= 0)) &&
+             (!('targetProtein' in data) || (data.targetProtein is number && data.targetProtein >= 0)) &&
+             (!('targetCarbs' in data) || (data.targetCarbs is number && data.targetCarbs >= 0)) &&
+             (!('targetFat' in data) || (data.targetFat is number && data.targetFat >= 0)) &&
+             (!('notificationSettings' in data) || (data.notificationSettings is map)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 1000000)) &&
+             (!('onboardingComplete' in data) || (data.onboardingComplete is bool)) &&
+             (!('trialUntil' in data) || (data.trialUntil == null || data.trialUntil is string)) &&
+             (!('premiumUntil' in data) || (data.premiumUntil == null || data.premiumUntil is string));
+    }
+
+    function isValidMeal(data) {
+      let allowedFields = ['userId', 'timestamp', 'mealName', 'calories', 'protein', 'carbs', 'fat', 'healthRating', 'analysis', 'imageUrl'];
+      return data.keys().hasAll(['userId', 'timestamp', 'mealName', 'calories']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId == request.auth.uid &&
+             data.mealName is string && data.mealName.size() < 100 &&
+             data.calories is number && data.calories >= 0 && data.calories < 10000 &&
+             (!('healthRating' in data) || (data.healthRating in ['saudável', 'moderada', 'não recomendada'])) &&
+             (!('analysis' in data) || (data.analysis is string && data.analysis.size() < 1000));
+    }
+
+    function isValidChat(data) {
+      let allowedFields = ['userId', 'role', 'content', 'timestamp'];
+      return data.keys().hasAll(['userId', 'role', 'content', 'timestamp']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId == request.auth.uid &&
+             data.role in ['user', 'model'] &&
+             data.content is string && data.content.size() < 5000;
+    }
+
+    function isValidProgress(data) {
+      let allowedFields = ['userId', 'weight', 'timestamp'];
+      return data.keys().hasAll(['userId', 'weight', 'timestamp']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId == request.auth.uid &&
+             data.weight is number && data.weight > 0 && data.weight < 500;
+    }
+
+    function isValidWorkout(data) {
+      let allowedFields = ['userId', 'exerciseType', 'duration', 'intensity', 'caloriesBurned', 'timestamp'];
+      return data.keys().hasAll(['userId', 'exerciseType', 'duration', 'intensity', 'timestamp']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId == request.auth.uid &&
+             data.exerciseType is string && data.exerciseType.size() < 100 &&
+             data.duration is int && data.duration > 0 && data.duration < 1440 &&
+             data.intensity in ['baixa', 'moderada', 'alta'] &&
+             (!('caloriesBurned' in data) || (data.caloriesBurned is number && data.caloriesBurned >= 0));
+    }
+
+    function isValidTemplate(data) {
+      let allowedFields = ['userId', 'name', 'calories', 'protein', 'carbs', 'fat', 'createdAt'];
+      return data.keys().hasAll(['userId', 'name', 'calories', 'createdAt']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.calories is number && data.calories >= 0 &&
+             (!('protein' in data) || data.protein is number) &&
+             (!('carbs' in data) || data.carbs is number) &&
+             (!('fat' in data) || data.fat is number);
+    }
+
+    // Collection matches
+    match /users/{uid} {
+      allow read: if isAuthenticated() && (isOwner(uid) || isAdmin());
+      allow create: if isOwner(uid) && isValidUser(request.resource.data) && (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      allow update: if (isOwner(uid) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role && (!('isPremium' in request.resource.data) || request.resource.data.isPremium == resource.data.get('isPremium', false))) || isAdmin();
+      
+      match /meals/{mealId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && isValidMeal(request.resource.data);
+      }
+      
+      match /chat/{messageId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && isValidChat(request.resource.data);
+      }
+      
+      match /progress/{progressId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && isValidProgress(request.resource.data);
+      }
+
+      match /workouts/{workoutId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && isValidWorkout(request.resource.data);
+      }
+
+      match /templates/{templateId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && isValidTemplate(request.resource.data);
+      }
+    }
+
+    match /payment_requests/{requestId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+    }
+  }
+}
